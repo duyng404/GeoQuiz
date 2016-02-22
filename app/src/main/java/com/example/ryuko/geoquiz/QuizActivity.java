@@ -15,6 +15,7 @@ public class QuizActivity extends AppCompatActivity {
 
     private static final String TAG="QuizActivity";
     private static final String KEY_INDEX="index";
+    private static final String KEY_CHEAT_LOG="cheatlog";
     private static final int REQUEST_CODE_CHEAT = 0;
 
     private Button mTrueButton;
@@ -31,7 +32,7 @@ public class QuizActivity extends AppCompatActivity {
             new Question(R.string.questions_ocean,true),
     };
     private int mCurrentIndex = 0;
-    private boolean mIsCheater;
+    private boolean[] mIsCheater;
 
     private void updateQuestion(){
         int question = mQuestionBank[mCurrentIndex].getTextResId();
@@ -43,12 +44,13 @@ public class QuizActivity extends AppCompatActivity {
         super.onSaveInstanceState(savedInstanceState);
         Log.i(TAG, "onSaveInstanceState");
         savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
+        savedInstanceState.putBooleanArray(KEY_CHEAT_LOG, mIsCheater);
     }
 
     private void checkAnswer(boolean userPressedTrue){
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
         int messageResId;
-        if (mIsCheater) {
+        if (mIsCheater[mCurrentIndex]) {
             messageResId = R.string.judgement_toast;
         } else {
             if (userPressedTrue == answerIsTrue) {
@@ -101,9 +103,9 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
         mCheatButton = (Button) findViewById(R.id.cheat_button);
-        mCheatButton.setOnClickListener(new View.OnClickListener(){
+        mCheatButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
+            public void onClick(View v) {
                 // Start CheatActivity
                 boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
                 Intent i = CheatActivity.newIntent(QuizActivity.this, answerIsTrue);
@@ -111,7 +113,12 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
         if(savedInstanceState != null){
-            mCurrentIndex=savedInstanceState.getInt(KEY_INDEX, 0);
+            mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
+            mIsCheater = savedInstanceState.getBooleanArray(KEY_CHEAT_LOG);
+        } else {
+            mIsCheater = new boolean[mQuestionBank.length];
+            for (int i=0; i<mQuestionBank.length; i++)
+                mIsCheater[i] = false;
         }
         updateQuestion();
     }
@@ -125,7 +132,7 @@ public class QuizActivity extends AppCompatActivity {
             if (data == null){
                 return;
             }
-            mIsCheater = CheatActivity.wasAnswerShown(data);
+            mIsCheater[mCurrentIndex] = CheatActivity.wasAnswerShown(data);
         }
     }
 
@@ -161,7 +168,6 @@ public class QuizActivity extends AppCompatActivity {
 
     private void nextQuestion() {
         mCurrentIndex = (mCurrentIndex + 1) % mQuestionBank.length;
-        mIsCheater = false;
         updateQuestion();
     }
     private void prevQuestion() {
